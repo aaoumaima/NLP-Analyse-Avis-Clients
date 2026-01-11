@@ -1,0 +1,24 @@
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv
+.git
+.gitignore
+*.md
+*.ipynb
+.ipynb_checkpoints
+.DS_Store
+*.log
+.env
+.secrets
+*.pt
+*.pth
+*.pkl
+test_*.py
+*_test.py
+# Exclure les datasets CSV (trop volumineux - téléchargés au runtime ou depuis Azure Blob Storage)
+*.csv

@@ -1,0 +1,64 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+*.egg-info/
+dist/
+build/
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+*.ipynb
+
+# Environnement
+.env
+.secrets
+
+# Modèles (trop gros)
+*.pt
+*.pth
+*.pkl
+*.h5
+*.ckpt
+model/
+models/
+*.safetensors
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Datasets (optionnel - décommentez si trop gros pour GitHub)
+# *.csv
+# TA_restaurants_*.csv
+
+# Cache
+.cache/
+*.cache
+
+# Tests
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Documentation générée
+docs/_build/
+
+# Fichiers temporaires
+*.tmp
+*.temp
