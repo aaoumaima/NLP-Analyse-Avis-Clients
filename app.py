@@ -126,25 +126,54 @@ if run_btn:
         st.warning("⚠️ Veuillez entrer un avis à analyser.")
     else:
         with st.spinner("🔄 Analyse en cours..."):
-            # Analyse de sentiment
-            inputs = tokenizer(text, return_tensors="pt", truncation=True, padding=True, max_length=MAX_LEN)
-            inputs = {k: v.to(device) for k, v in inputs.items()}
-            with torch.no_grad():
-                outputs = model(**inputs)
-                probs = torch.softmax(outputs.logits, dim=-1)[0]
-                pred_id = torch.argmax(probs).item()
-                conf = float(probs[pred_id].item())
-            
-            label_map = {0: "Négatif", 1: "Neutre", 2: "Positif"}
-            sentiment = label_map.get(pred_id, "Neutre")
-            
-            # Analyse d'émotions
+            # Analyse d'émotions d'abord
             if emotion_detector:
                 emotion_scores = emotion_detector.predict_emotion(text)
                 main_emotion, emotion_conf = emotion_detector.get_main_emotion(text)
             else:
                 emotion_scores = {}
                 main_emotion, emotion_conf = "neutre", 0.0
+            
+            # Dériver le sentiment depuis l'émotion (plus fiable)
+            emotion_to_sentiment = {
+                "joie": "Positif",
+                "tristesse": "Négatif",
+                "colère": "Négatif",
+                "surprise": "Neutre",  # Surprise peut être positive ou négative
+                "neutre": "Neutre"
+            }
+            
+            # Si l'émotion est très confiante (>70%), utiliser l'émotion pour le sentiment
+            if emotion_conf > 0.7:
+                sentiment = emotion_to_sentiment.get(main_emotion, "Neutre")
+                conf = emotion_conf  # Utiliser la confiance de l'émotion
+                # Calculer les probabilités approximatives pour les graphiques
+                if sentiment == "Positif":
+                    probs = torch.tensor([0.1, 0.1, 0.8])  # [Négatif, Neutre, Positif]
+                elif sentiment == "Négatif":
+                    probs = torch.tensor([0.8, 0.1, 0.1])
+                else:
+                    probs = torch.tensor([0.2, 0.6, 0.2])
+            else:
+                # Si l'émotion n'est pas très confiante, utiliser le modèle BERT
+                inputs = tokenizer(text, return_tensors="pt", truncation=True, padding=True, max_length=MAX_LEN)
+                inputs = {k: v.to(device) for k, v in inputs.items()}
+                with torch.no_grad():
+                    outputs = model(**inputs)
+                    probs = torch.softmax(outputs.logits, dim=-1)[0]
+                    pred_id = torch.argmax(probs).item()
+                    conf = float(probs[pred_id].item())
+                
+                label_map = {0: "Négatif", 1: "Neutre", 2: "Positif"}
+                sentiment = label_map.get(pred_id, "Neutre")
+                
+                # Vérifier la cohérence avec l'émotion
+                if emotion_detector and main_emotion != "neutre":
+                    expected_sentiment = emotion_to_sentiment.get(main_emotion, "Neutre")
+                    # Si le sentiment BERT n'est pas cohérent avec l'émotion, utiliser l'émotion
+                    if sentiment != expected_sentiment and emotion_conf > 0.5:
+                        sentiment = expected_sentiment
+                        conf = max(conf, emotion_conf * 0.8)  # Ajuster la confiance
         
         st.markdown("---")
         st.markdown("### 📌 Résultats de l'Analyse")
@@ -187,8 +216,16 @@ if run_btn:
                 st.metric("Émotion", "❌ Non disponible")
         
         with col4:
-            sat = "Satisfait ✅" if sentiment == "Positif" else "Non satisfait ❌" if sentiment == "Négatif" else "Moyen 🤝"
-            sat_color = "#10b981" if sentiment == "Positif" else "#ef4444" if sentiment == "Négatif" else "#f59e0b"
+            # Satisfaction basée sur le sentiment (cohérent)
+            if sentiment == "Positif":
+                sat = "Satisfait ✅"
+                sat_color = "#10b981"
+            elif sentiment == "Négatif":
+                sat = "Non satisfait ❌"
+                sat_color = "#ef4444"
+            else:
+                sat = "Moyen 🤝"
+                sat_color = "#f59e0b"
             st.markdown(f"""
             <div class="metric-card" style="background: {sat_color};">
                 <h3 style="margin: 0 0 0.5rem 0; font-size: 1rem; font-weight: 500; opacity: 0.9;">Satisfaction</h3>
@@ -201,7 +238,11 @@ if run_btn:
         # Graphiques
         st.markdown("### 📊 Analyse de Sentiment")
         labels = ["Négatif", "Neutre", "Positif"]
-        values = [float(probs[0]), float(probs[1]), float(probs[2])]
+        # S'assurer que probs est un tensor avec 3 valeurs
+        if isinstance(probs, torch.Tensor):
+            values = [float(probs[0]), float(probs[1]), float(probs[2])]
+        else:
+            values = [float(probs[0]), float(probs[1]), float(probs[2])]
         colors = ["#ef4444", "#f59e0b", "#10b981"]
         
         col1, col2 = st.columns(2)
