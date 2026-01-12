@@ -19,7 +19,7 @@ build/
 .env
 .secrets
 
-# Modèles (trop gros)
+# Modèles (trop gros) - SAUF bert_sentiment_exam/ qui est nécessaire
 *.pt
 *.pth
 *.pkl
@@ -27,7 +27,9 @@ build/
 *.ckpt
 model/
 models/
-*.safetensors
+# Exception: bert_sentiment_exam/ est nécessaire pour Streamlit Cloud
+!bert_sentiment_exam/
+!bert_sentiment_exam/**/*
 
 # Logs
 *.log
